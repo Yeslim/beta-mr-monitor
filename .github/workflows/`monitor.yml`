@@ -1,0 +1,43 @@
+name: Monitor Beta.mr
+
+on:
+  schedule:
+    # Run every hour at minute 0
+    - cron: '0 * * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        pip install requests beautifulsoup4
+    
+    - name: Run monitor script
+      env:
+        WHATSAPP_PHONE: ${{ secrets.WHATSAPP_PHONE }}
+        WHATSAPP_API_KEY: ${{ secrets.WHATSAPP_API_KEY }}
+      run: |
+        python monitor_beta.py
+    
+    - name: Commit state changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add last_state.json
+        git diff --quiet && git diff --staged --quiet || git commit -m "Update monitoring state [skip ci]"
+        git push
